@@ -1,0 +1,165 @@
+import requests
+import plotly.graph_objects as go
+import plotly.express as px
+import plotly.subplots as sp
+
+#api key get via riot api site
+api_key = input("What is your Api-Key? ")
+#"RGAPI-601a7372-3a3d-401d-9c2c-a0f0ab82c4eb"
+#puuid = summoner - FloppY5ZN
+#puuid = "pIdL9vKnQXF68o07MbodFsr_v8OSuSZmv7gkZjXWs6YWMRzAftfiIkCAtsUNdoVZmHC4ifVaHXyNYw"
+
+summoner_name = input('What is their summoner name? ') 
+
+print("Dashboard being retrieved, one moment please" )
+
+puuid_by_name = "https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/"+summoner_name+"?api_key="+api_key
+response = requests.get(puuid_by_name)
+if response.status_code == 200:
+    summoner_info = response.json()
+    
+    puuid = (summoner_info['puuid'])
+
+else:
+    print(response.status_code, "Name includes bugged characters, use API to correct characters")
+
+
+
+#puuid = summoner - ÑeekosInParis
+#puuid = "tdI_8v37cPBpndOHDyR-q3-eyXz-SmjufLXe3yRGrUzXCOz-K_GEhs7hOeTWt5LBlaMHQhOXaUjMMw"
+
+#get_match_history
+
+recent_matches = "https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/"+puuid + "/ids?queue=420&type=ranked&start=0&count=30"+"&api_key="+ api_key
+# Create lists to store the values for each stat
+kills = []
+deaths = []
+assists = []
+goldPM = []
+CS10 = []
+
+response = requests.get(recent_matches)
+if response.status_code == 200:
+    matches_id = response.json()
+
+    # Loop through the matches_id
+    for match_id in matches_id:
+        # Get the match data
+        match_url = "https://europe.api.riotgames.com/lol/match/v5/matches/" + match_id + "?api_key=" + api_key
+        response = requests.get(match_url)
+  
+  
+
+        if response.status_code == 200:
+            match_data = response.json()
+
+            # Stats that may be of interest
+            summoner_index = match_data['metadata']['participants'].index(puuid)
+            kills.append(match_data['info']['participants'][summoner_index]['kills'])
+            deaths.append(match_data['info']['participants'][summoner_index]['deaths'])
+            assists.append(match_data['info']['participants'][summoner_index]['assists'])
+            goldPM.append(match_data['info']['participants'][summoner_index]["challenges"]['goldPerMinute'])
+            CS10.append(match_data['info']['participants'][summoner_index]["challenges"]['laneMinionsFirst10Minutes'])
+
+                # Calculate the average of each stat
+            kills_avg = sum(kills) / len(kills)
+            deaths_avg = sum(deaths) / len(deaths)
+            assists_avg = sum(assists) / len(assists)
+            goldPM_avg = sum(goldPM) / len(goldPM)
+            CS10_avg = sum(CS10) / len(CS10)
+
+fig = sp.make_subplots(rows=2, cols=2)
+
+# Customize subplot layout (optional)
+fig.update_layout(title_text="Enemy opponent analysis dashboard")
+
+# Calculate the average of each stat
+kills_avg = sum(kills) / len(kills)
+deaths_avg = sum(deaths) / len(deaths)
+assists_avg = sum(assists) / len(assists)
+goldPM_avg = sum(goldPM) / len(goldPM)
+CS10_avg = sum(CS10) / len(CS10)
+
+# Create a common set of x values for all traces within each subplot
+x_values = list(range(len(goldPM)))
+
+# Add the first subplot (Gold Per Minute) with title
+fig.add_trace(go.Scatter(x=x_values, y=goldPM, mode='lines', name='Gold Per Minute'), row=1, col=1)
+fig.update_xaxes(title_text="Match", row=1, col=1)
+fig.update_yaxes(title_text="Gold Per Minute", row=1, col=1)
+
+# Add the second subplot (Kills) with title
+fig.add_trace(go.Scatter(x=x_values, y=kills, mode='lines', name='Kills'), row=1, col=2)
+fig.update_xaxes(title_text="Match", row=1, col=2)
+fig.update_yaxes(title_text="Kills", row=1, col=2)
+
+# Add the third subplot (Deaths) with title
+fig.add_trace(go.Scatter(x=x_values, y=deaths, mode='lines', name='Deaths'), row=2, col=1)
+fig.update_xaxes(title_text="Match", row=2, col=1)
+fig.update_yaxes(title_text="Deaths", row=2, col=1)
+
+# Add the fourth subplot (Assists) with title
+fig.add_trace(go.Scatter(x=x_values, y=assists, mode='lines', name='Assists'), row=2, col=2)
+fig.update_xaxes(title_text="Match", row=2, col=2)
+fig.update_yaxes(title_text="Assists", row=2, col=2)
+
+
+# Add text annotations for the calculated averages above the 2x2 plot
+fig.add_annotation(text=f'Kills Avg: {kills_avg:.2f}', xref='paper', yref='paper', x=0.3, y=1.1, showarrow=False)
+fig.add_annotation(text=f'Deaths Avg: {deaths_avg:.2f}', xref='paper', yref='paper', x=0.5, y=1.1, showarrow=False)
+fig.add_annotation(text=f'Assists Avg: {assists_avg:.2f}', xref='paper', yref='paper', x=0.7, y=1.1, showarrow=False)
+fig.add_annotation(text=f'Gold Per Minute Avg: {goldPM_avg:.2f}', xref='paper', yref='paper', x=0.6, y=1.05, showarrow=False)
+fig.add_annotation(text=f'CS10 Avg: {CS10_avg:.2f}', xref='paper', yref='paper', x=0.4, y=1.05, showarrow=False)
+
+
+fig.show()
+
+
+
+
+
+
+
+
+'''
+laneMinionsFirst10Minutes
+initialCrabCount
+scuttleCrabKills
+'''
+
+
+
+
+
+
+
+
+
+
+
+
+#code that may come in handy later
+'''
+match1 = matches_id[0]
+
+#get data from matches
+
+match_id = match1
+match_url = "https://europe.api.riotgames.com/lol/match/v5/matches/" + match_id +"?api_key="+ api_key
+
+
+response = requests.get(match_url)
+if response.status_code == 200:
+    match_data = response.json()
+else:
+    print(response.status_code)
+
+#print (match_data)
+
+#kda for sum
+summomer_index = match_data['metadata']['participants'].index(puuid)
+print (match_data['info']['participants'][summomer_index]['kills'])
+print (match_data['info']['participants'][summomer_index]['deaths'])
+print (match_data['info']['participants'][summomer_index]['assists'])
+'''
+
